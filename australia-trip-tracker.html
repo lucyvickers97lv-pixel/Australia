@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Australia Travel — Trip Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy-deep:#081820;
+    --navy:#0d2733;
+    --navy-panel:#0f2e3c;
+    --board-line:#1c4a5c;
+    --amber:#ffb020;
+    --amber-dim:#8a6420;
+    --teal:#3fb8a8;
+    --coral:#ef6a4c;
+    --cream:#f3ecdd;
+    --cream-dim:#b9c6c9;
+    --green-go:#63c88a;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(63,184,168,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 0%, rgba(255,176,32,0.08), transparent 55%),
+      var(--navy-deep);
+    color:var(--cream);
+    font-family:'Manrope',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 80px;}
+
+  /* ---------- HERO / BOARD ---------- */
+  .board{
+    background:linear-gradient(180deg,var(--navy-panel),var(--navy));
+    border:1px solid var(--board-line);
+    border-radius:14px;
+    padding:26px 24px 22px;
+    box-shadow:0 30px 60px -30px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.03);
+    position:relative;
+    overflow:hidden;
+  }
+  .board::before{
+    content:"";
+    position:absolute;inset:0;
+    background:repeating-linear-gradient(180deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 1px, transparent 1px, transparent 4px);
+    pointer-events:none;
+    opacity:0.35;
+  }
+  .board-top{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    font-family:'Space Mono',monospace;
+    gap:16px; flex-wrap:wrap;
+  }
+  .board-kicker{
+    font-size:11px;letter-spacing:0.18em;color:var(--teal);text-transform:uppercase;font-weight:700;
+  }
+  .board-title{
+    font-family:'Space Mono',monospace;
+    font-size:clamp(24px,5vw,38px);
+    font-weight:700;color:var(--amber);
+    letter-spacing:0.02em;
+    margin:6px 0 2px;
+    text-shadow:0 0 18px rgba(255,176,32,0.35);
+  }
+  .board-sub{color:var(--cream-dim);font-size:13px;}
+  .board-clock{
+    font-family:'Space Mono',monospace;
+    text-align:right;
+    font-size:12px;color:var(--cream-dim);
+  }
+  .board-clock b{display:block;color:var(--cream);font-size:14px;font-weight:700;}
+
+  .status-strip{
+    margin-top:22px;
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:14px;
+    align-items:center;
+    background:rgba(0,0,0,0.25);
+    border:1px solid var(--board-line);
+    border-radius:10px;
+    padding:16px 18px;
+  }
+  .status-label{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.16em;color:var(--cream-dim);text-transform:uppercase;}
+  .status-value{
+    font-family:'Space Mono',monospace;
+    font-size:clamp(18px,3.6vw,26px);
+    font-weight:700;
+    color:var(--green-go);
+    letter-spacing:0.03em;
+    margin-top:4px;
+  }
+  .status-value.transit{color:var(--coral);}
+  .status-value.upcoming{color:var(--amber);}
+  .status-detail{font-size:13px;color:var(--cream-dim);margin-top:6px;}
+  .pill{
+    font-family:'Space Mono',monospace;
+    font-size:11px;padding:7px 12px;border-radius:999px;
+    border:1px solid var(--teal);color:var(--teal);white-space:nowrap;
+    justify-self:end;
+  }
+
+  /* ---------- ROUTE STRIP ---------- */
+  .route-card{
+    margin-top:16px;
+    background:var(--navy-panel);
+    border:1px solid var(--board-line);
+    border-radius:14px;
+    padding:22px 24px 26px;
+  }
+  .section-eyebrow{
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.16em;
+    color:var(--teal);text-transform:uppercase;margin-bottom:14px;font-weight:700;
+  }
+  .route-track{
+    position:relative;
+    display:flex;
+    justify-content:space-between;
+    padding:0 4px;
+  }
+  .route-line{
+    position:absolute;top:9px;left:12px;right:12px;height:2px;
+    background:var(--board-line);
+  }
+  .route-line-fill{
+    position:absolute;top:9px;left:12px;height:2px;
+    background:linear-gradient(90deg,var(--teal),var(--amber));
+    transition:width .6s ease;
+  }
+  .stop{
+    position:relative;
+    display:flex;flex-direction:column;align-items:center;
+    flex:1;
+    min-width:0;
+  }
+  .stop-dot{
+    width:20px;height:20px;border-radius:50%;
+    background:var(--navy);
+    border:2px solid var(--board-line);
+    z-index:2;
+  }
+  .stop.done .stop-dot{background:var(--teal);border-color:var(--teal);}
+  .stop.current .stop-dot{
+    background:var(--amber);border-color:var(--amber);
+    box-shadow:0 0 0 5px rgba(255,176,32,0.18);
+  }
+  .stop-code{
+    font-family:'Space Mono',monospace;font-weight:700;font-size:13px;margin-top:9px;color:var(--cream);
+  }
+  .stop-city{font-size:10px;color:var(--cream-dim);margin-top:2px;text-align:center;}
+  .stop.current .stop-code{color:var(--amber);}
+
+  /* ---------- DAYS ---------- */
+  .days-card{margin-top:16px;}
+  .day-row{
+    background:var(--navy-panel);
+    border:1px solid var(--board-line);
+    border-radius:10px;
+    margin-bottom:8px;
+    overflow:hidden;
+  }
+  .day-row.today{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber), 0 12px 24px -14px rgba(255,176,32,0.4);}
+  .day-row.past{opacity:0.55;}
+  .day-summary{
+    display:grid;
+    grid-template-columns:64px 1fr auto;
+    gap:14px;
+    align-items:center;
+    padding:13px 16px;
+    cursor:pointer;
+    list-style:none;
+  }
+  .day-summary::-webkit-details-marker{display:none;}
+  .day-date{
+    font-family:'Space Mono',monospace;
+    text-align:center;
+    line-height:1.15;
+  }
+  .day-date .num{font-size:20px;font-weight:700;color:var(--amber);display:block;}
+  .day-date .mon{font-size:10px;color:var(--cream-dim);letter-spacing:0.08em;text-transform:uppercase;}
+  .day-main .route{font-weight:700;font-size:14.5px;color:var(--cream);}
+  .day-main .weekday{font-family:'Space Mono',monospace;font-size:10px;color:var(--teal);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;}
+  .day-main .hotel{font-size:12px;color:var(--cream-dim);margin-top:3px;}
+  .badge{
+    font-family:'Space Mono',monospace;font-size:10px;padding:5px 10px;border-radius:999px;white-space:nowrap;
+    border:1px solid var(--board-line);color:var(--cream-dim);
+  }
+  .badge.travel{border-color:var(--coral);color:var(--coral);}
+  .badge.free{border-color:var(--teal);color:var(--teal);}
+  .badge.recovery{border-color:var(--amber-dim);color:var(--amber);}
+  .day-body{
+    padding:0 16px 18px 94px;
+    font-size:13.5px;
+    color:var(--cream-dim);
+    border-top:1px dashed var(--board-line);
+    margin-top:2px;padding-top:14px;
+  }
+  .day-body .flight-info{
+    font-family:'Space Mono',monospace;font-size:12px;color:var(--cream);margin-bottom:10px;
+    background:rgba(0,0,0,0.22);border:1px solid var(--board-line);border-radius:8px;padding:9px 12px;display:inline-block;
+  }
+  .day-body ul{margin:6px 0 0;padding-left:18px;}
+  .day-body li{margin-bottom:4px;}
+  .day-body .price-tag{color:var(--green-go);font-family:'Space Mono',monospace;font-size:12px;margin-top:8px;}
+
+  footer{
+    text-align:center;color:var(--cream-dim);font-size:11.5px;margin-top:26px;font-family:'Space Mono',monospace;
+    letter-spacing:0.03em;
+  }
+
+  @media (max-width:560px){
+    .stop-city{display:none;}
+    .day-body{padding-left:16px;}
+  }
+
+  /* ---------- WORLD CLOCK ---------- */
+  .clock-strip{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+    gap:10px;
+  }
+  .clock-tile{
+    background:rgba(0,0,0,0.22);
+    border:1px solid var(--board-line);
+    border-radius:10px;
+    padding:13px 14px;
+    position:relative;
+  }
+  .clock-tile.here{border-color:var(--amber);}
+  .clock-tile .zone-name{
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.08em;
+    color:var(--cream-dim);text-transform:uppercase;
+  }
+  .clock-tile .zone-time{
+    font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:var(--amber);
+    margin-top:6px;letter-spacing:0.02em;
+  }
+  .clock-tile .zone-date{
+    font-size:11px;color:var(--cream-dim);margin-top:4px;
+  }
+  .clock-tile .zone-offset{
+    position:absolute;top:12px;right:12px;
+    font-family:'Space Mono',monospace;font-size:9.5px;color:var(--teal);
+  }
+  .clock-tile .zone-daynight{
+    font-size:13px;position:absolute;bottom:12px;right:14px;
+  }
+
+  .hero{
+    position:relative;
+    border-radius:14px;
+    overflow:hidden;
+    margin-bottom:16px;
+    border:1px solid var(--board-line);
+    box-shadow:0 30px 60px -30px rgba(0,0,0,0.7);
+  }
+  .hero svg{display:block;width:100%;height:auto;}
+  .hero-caption{
+    position:absolute;left:18px;bottom:14px;
+    font-family:'Space Mono',monospace;
+    font-size:11px;letter-spacing:0.1em;color:var(--cream);
+    text-transform:uppercase;
+    background:rgba(8,24,32,0.55);
+    padding:6px 10px;border-radius:6px;
+    backdrop-filter:blur(2px);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <svg viewBox="0 0 980 300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0d2733"/>
+          <stop offset="40%" stop-color="#2b5a5c"/>
+          <stop offset="72%" stop-color="#e2793f"/>
+          <stop offset="100%" stop-color="#ffb020"/>
+        </linearGradient>
+        <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#ffe9b0"/>
+          <stop offset="60%" stop-color="#ffb020"/>
+          <stop offset="100%" stop-color="#ffb020" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#1f5e63"/>
+          <stop offset="100%" stop-color="#0b2a2e"/>
+        </linearGradient>
+        <linearGradient id="headland" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3fb8a8"/>
+          <stop offset="100%" stop-color="#123a37"/>
+        </linearGradient>
+      </defs>
+      <rect width="980" height="300" fill="url(#sky)"/>
+      <circle cx="770" cy="130" r="120" fill="url(#sun)"/>
+      <circle cx="770" cy="130" r="42" fill="#ffdf9a"/>
+
+      <!-- stars -->
+      <g fill="#f3ecdd" opacity="0.55">
+        <circle cx="70" cy="35" r="1.4"/>
+        <circle cx="150" cy="60" r="1.1"/>
+        <circle cx="260" cy="30" r="1.3"/>
+        <circle cx="40" cy="90" r="1.1"/>
+      </g>
+
+      <!-- ocean -->
+      <rect x="0" y="185" width="980" height="115" fill="url(#sea)"/>
+      <g stroke="#f3ecdd" stroke-opacity="0.25" stroke-width="1.5">
+        <path d="M0 205 Q 40 200 80 205 T 160 205 T 240 205" fill="none"/>
+        <path d="M300 225 Q 340 220 380 225 T 460 225 T 540 225" fill="none"/>
+        <path d="M0 250 Q 50 244 100 250 T 200 250" fill="none"/>
+        <path d="M600 240 Q 650 234 700 240 T 800 240 T 900 240" fill="none"/>
+      </g>
+
+      <!-- eastern headland / coastal cliff (Bondi-style) -->
+      <path d="M0 300 L0 210 C 40 195, 90 205, 130 190 C 165 178, 190 195, 210 185 L 240 220 L 240 300 Z" fill="url(#headland)"/>
+      <path d="M0 300 L0 210 C 40 195, 90 205, 130 190 C 165 178, 190 195, 210 185 L 240 220 L 240 300 Z" fill="#0d1f1c" opacity="0.35"/>
+
+      <!-- Sydney Harbour Bridge (silhouette) -->
+      <g fill="none" stroke="#0d1512" stroke-width="4" stroke-linecap="round">
+        <path d="M470 220 C 470 150, 640 150, 640 220" stroke-width="6"/>
+        <path d="M470 220 C 470 165, 640 165, 640 220" stroke-width="3" opacity="0.7"/>
+        <line x1="500" y1="180" x2="500" y2="220"/>
+        <line x1="530" y1="163" x2="530" y2="220"/>
+        <line x1="560" y1="158" x2="560" y2="220"/>
+        <line x1="590" y1="163" x2="590" y2="220"/>
+        <line x1="620" y1="180" x2="620" y2="220"/>
+      </g>
+      <rect x="455" y="218" width="200" height="7" fill="#0d1512"/>
+
+      <!-- Opera House (silhouette, sails) -->
+      <g fill="#0d1512">
+        <path d="M700 222 C 705 190 725 185 735 222 Z"/>
+        <path d="M730 222 C 737 182 762 178 772 222 Z"/>
+        <path d="M765 222 C 772 195 792 192 800 222 Z"/>
+        <rect x="695" y="220" width="112" height="8"/>
+      </g>
+
+      <!-- distant sailboat -->
+      <g fill="#0d1512" opacity="0.8">
+        <path d="M300 205 L300 190 L312 205 Z"/>
+        <rect x="297" y="205" width="10" height="3"/>
+      </g>
+
+      <!-- flight trail with plane -->
+      <path d="M60 60 C 220 10, 420 100, 600 45 C 740 5, 850 70, 950 30" fill="none" stroke="#f3ecdd" stroke-width="1.4" stroke-dasharray="1 9" stroke-linecap="round" opacity="0.8"/>
+      <g transform="translate(950,30) rotate(-16)">
+        <path d="M0 0 L18 3 L0 6 L4 3 Z" fill="#f3ecdd"/>
+        <path d="M2 1 L2 -5 M2 5 L2 11" stroke="#f3ecdd" stroke-width="1.4"/>
+      </g>
+    </svg>
+    <div class="hero-caption">Sydney Harbour, NSW — east coast, dead ahead</div>
+  </div>
+
+  <div class="board">
+    <div class="board-top">
+      <div>
+        <div class="board-kicker">✈ Live trip tracker</div>
+        <div class="board-title">AUSTRALIA TRAVEL</div>
+        <div class="board-sub">Manchester → Singapore → Adelaide → Sydney → Cairns → Singapore → Manchester</div>
+      </div>
+      <div class="board-clock">
+        <span id="todayLabel">—</span>
+        <b id="todayTime">—</b>
+      </div>
+    </div>
+
+    <div class="status-strip">
+      <div>
+        <div class="status-label">Right now</div>
+        <div class="status-value" id="statusValue">Loading…</div>
+        <div class="status-detail" id="statusDetail"></div>
+      </div>
+      <div class="pill" id="statusPill">DAY —/18</div>
+    </div>
+  </div>
+
+  <div class="route-card">
+    <div class="section-eyebrow">World clock</div>
+    <div class="clock-strip" id="clockStrip"></div>
+  </div>
+
+  <div class="route-card">
+    <div class="section-eyebrow">Route</div>
+    <div class="route-track" id="routeTrack">
+      <div class="route-line"></div>
+      <div class="route-line-fill" id="routeFill" style="width:0%"></div>
+      <!-- stops injected by JS -->
+    </div>
+  </div>
+
+  <div class="route-card days-card">
+    <div class="section-eyebrow">Day by day</div>
+    <div id="daysList"></div>
+  </div>
+
+  <footer>Built from Australia_Research.xlsx · dates assume 2026 · bookmark this page and share the link with family</footer>
+</div>
+
+<script>
+const YEAR = 2026;
+
+// ---- Route stops (airport codes) ----
+const stops = [
+  {code:"MAN", city:"Manchester"},
+  {code:"SIN", city:"Singapore"},
+  {code:"ADL", city:"Adelaide"},
+  {code:"SYD", city:"Sydney"},
+  {code:"CNS", city:"Cairns"},
+  {code:"SIN", city:"Singapore"},
+  {code:"MAN", city:"Manchester"},
+];
+
+// ---- Day by day itinerary, built from the "Itinerary" sheet ----
+const days = [
+  {d:"2026-08-28", wd:"Fri", type:"travel", route:"Manchester → Singapore", hotel:"No hotel — overnight flight", flight:"SQ301 · Taxi 6AM · Flight 10:30AM · 13h · Lands +1 day 7AM (11PM UK)", acts:["Overnight flight, arrive Singapore the next morning"], price:null, stopIndex:0},
+  {d:"2026-08-29", wd:"Sat", type:"free", route:"Singapore", hotel:"QT Singapore (3pm check-in)", flight:null, acts:["Train to Haji Lane / Sultan Mosque","Merlion Statue / Fort Canning / Otters","Nap time","Gardens by the Bay / Skywalk — £16.24","Water Lily Pond viewpoint","Marina Barrage — sunset spot","Garden Rhapsody Supertree light show, 7:45PM (free)","Marina Bay Sands Observatory, 6PM — £24.44"], price:40.68, stopIndex:1},
+  {d:"2026-08-30", wd:"Sun", type:"free", route:"Singapore", hotel:"QT Singapore", flight:null, acts:["Train/bus to Sentosa Island","Aquarium — £58.00","Palawan Beach","Nap time","Capita Spring Sky Garden (free, book 14 days prior)","Spectra Show, 8–9PM (free)"], price:58.00, stopIndex:1},
+  {d:"2026-08-31", wd:"Mon", type:"travel", route:"Singapore → Adelaide", hotel:"QT Singapore checkout → Hotel Indigo Adelaide check-in", flight:"Taxi 4:45AM · Flight 8:20AM · 6h30m · Lands 4:20PM AUS", acts:["Central Market (free)","Sleep — recover from travel"], price:0, stopIndex:2},
+  {d:"2026-09-01", wd:"Tue", type:"free", route:"Adelaide", hotel:"Hotel Indigo Adelaide Markets", flight:null, acts:["Botanic Garden (free)","Adelaide Zoo — £50","Himeji Garden (free)"], price:50.00, stopIndex:2},
+  {d:"2026-09-02", wd:"Wed", type:"free", route:"Adelaide", hotel:"Hotel Indigo Adelaide Markets", flight:null, acts:["Henley → Glenelg Beach by bike (free bikes from Ngutungka Library)","Alternative: Morialta Park"], price:null, stopIndex:2},
+  {d:"2026-09-03", wd:"Thu", type:"travel", route:"Adelaide → Sydney", hotel:"Hotel Indigo checkout → Veriu Central Sydney (2pm check-in)", flight:"09:30 → 11:50 · 2h", acts:["Arrival and check-in","Opera House","Harbour Bridge","Circular Quay"], price:null, stopIndex:3},
+  {d:"2026-09-04", wd:"Fri", type:"free", route:"Sydney", hotel:"Veriu Central Sydney", flight:null, acts:["Manly Beach ferry — £23.21","Observatory Hill (sunset)"], price:23.21, stopIndex:3},
+  {d:"2026-09-05", wd:"Sat", type:"free", route:"Sydney", hotel:"Veriu Central Sydney", flight:null, acts:["Whale watching — Osprey boat, 8AM or 11AM, 2h — £146.62","Shark diving / aquarium","Darling Harbour fireworks, 9PM (arrive 45 min early at Cockle Bay Wharf)"], price:146.62, stopIndex:3},
+  {d:"2026-09-06", wd:"Sun", type:"free", route:"Sydney", hotel:"Veriu Central Sydney", flight:null, acts:["Bondi Beach / Bondi Icebergs","Bondi–Coogee coastal walk","Sunday Markets, 10AM–5PM (free)"], price:null, stopIndex:3},
+  {d:"2026-09-07", wd:"Mon", type:"travel", route:"Sydney → Cairns", hotel:"Veriu checkout 10AM → Mercure Cairns check-in 2PM", flight:"12:40 → 15:55 · 4h", acts:["Arrival","Night market + food"], price:null, stopIndex:4},
+  {d:"2026-09-08", wd:"Tue", type:"free", route:"Cairns", hotel:"Mercure Cairns", flight:null, acts:["Great Barrier Reef snorkelling — £424","Scenic flight over the reef, 6h, 8AM–2PM"], price:110.76, stopIndex:4},
+  {d:"2026-09-09", wd:"Wed", type:"free", route:"Cairns", hotel:"Mercure Cairns", flight:null, acts:["Fitzroy Island (Reef Fleet Ferry Terminal) — £110.76, 8–12 or 8–5","Nudey Beach","Turtle Rock","Welcome Bay","Cairns Esplanade Lagoon (free)"], price:424.00, stopIndex:4},
+  {d:"2026-09-10", wd:"Thu", type:"free", route:"Cairns", hotel:"Mercure Cairns", flight:null, acts:["Port Douglas — rent a car, £100","Stoney Creek Falls?","Palm Cove","Pebbly Beach","Crocodile viewpoint / croc park","Four Mile Beach","Sunset at Rex Smeal Park"], price:null, stopIndex:4},
+  {d:"2026-09-11", wd:"Fri", type:"travel", route:"Cairns → Singapore", hotel:"Mercure Cairns checkout", flight:"18:15 → 22:40 · 6h30m", acts:["Transit"], price:null, stopIndex:5},
+  {d:"2026-09-12", wd:"Sat", type:"travel", route:"Singapore → Manchester", hotel:null, flight:"02:10 → 09:15 · 14h", acts:["Fly home"], price:null, stopIndex:6},
+  {d:"2026-09-13", wd:"Sun", type:"recovery", route:"Home", hotel:null, flight:null, acts:["Recovery day"], price:null, stopIndex:6},
+  {d:"2026-09-14", wd:"Mon", type:"recovery", route:"Home", hotel:null, flight:null, acts:["Recovery day"], price:null, stopIndex:6},
+];
+
+// ---------- render route strip ----------
+const track = document.getElementById('routeTrack');
+stops.forEach((s,i)=>{
+  const el = document.createElement('div');
+  el.className = 'stop';
+  el.dataset.idx = i;
+  el.innerHTML = `<div class="stop-dot"></div><div class="stop-code">${s.code}</div><div class="stop-city">${s.city}</div>`;
+  track.appendChild(el);
+});
+
+// ---------- render days ----------
+const list = document.getElementById('daysList');
+const fmtMonth = (dt)=> dt.toLocaleDateString('en-GB',{month:'short'});
+days.forEach((day)=>{
+  const dt = new Date(day.d+"T12:00:00");
+  const details = document.createElement('details');
+  details.className = 'day-row';
+  details.dataset.date = day.d;
+
+  const badgeClass = day.type === 'travel' ? 'travel' : (day.type === 'recovery' ? 'recovery' : 'free');
+  const badgeText = day.type === 'travel' ? 'TRAVEL' : (day.type === 'recovery' ? 'RECOVERY' : 'FREE DAY');
+
+  let bodyHtml = '';
+  if(day.flight) bodyHtml += `<div class="flight-info">✈ ${day.flight}</div><br>`;
+  if(day.hotel) bodyHtml += `<div>🏨 ${day.hotel}</div>`;
+  if(day.acts && day.acts.length){
+    bodyHtml += `<ul>${day.acts.map(a=>`<li>${a}</li>`).join('')}</ul>`;
+  }
+  if(day.price !== null && day.price !== undefined){
+    bodyHtml += `<div class="price-tag">Est. activity cost: £${day.price.toFixed(2)}</div>`;
+  }
+
+  details.innerHTML = `
+    <summary class="day-summary">
+      <div class="day-date"><span class="num">${dt.getDate()}</span><span class="mon">${fmtMonth(dt)}</span></div>
+      <div class="day-main">
+        <div class="weekday">${day.wd}</div>
+        <div class="route">${day.route}</div>
+        ${day.hotel && day.type!=='travel' ? `<div class="hotel">${day.hotel}</div>` : ''}
+      </div>
+      <span class="badge ${badgeClass}">${badgeText}</span>
+    </summary>
+    <div class="day-body">${bodyHtml}</div>
+  `;
+  list.appendChild(details);
+});
+
+// ---------- world clock ----------
+const zones = [
+  {label:"UK — Manchester", tz:"Europe/London", here:false},
+  {label:"Singapore", tz:"Asia/Singapore", here:false},
+  {label:"Adelaide, SA", tz:"Australia/Adelaide", here:false},
+  {label:"Sydney, NSW", tz:"Australia/Sydney", here:false},
+  {label:"Cairns, QLD", tz:"Australia/Brisbane", here:false},
+];
+const clockStrip = document.getElementById('clockStrip');
+zones.forEach((z,i)=>{
+  const tile = document.createElement('div');
+  tile.className = 'clock-tile';
+  tile.dataset.tz = z.tz;
+  tile.innerHTML = `
+    <div class="zone-offset" data-offset></div>
+    <div class="zone-name">${z.label}</div>
+    <div class="zone-time" data-time>--:--</div>
+    <div class="zone-date" data-date></div>
+    <div class="zone-daynight" data-icon></div>
+  `;
+  clockStrip.appendChild(tile);
+});
+
+function getOffsetLabel(tz, now){
+  const dtf = new Intl.DateTimeFormat('en-GB', {timeZone:tz, timeZoneName:'shortOffset'});
+  const part = dtf.formatToParts(now).find(p=>p.type==='timeZoneName');
+  return part ? part.value.replace('GMT','UTC') : '';
+}
+
+function renderClocks(){
+  const now = new Date();
+  document.querySelectorAll('.clock-tile').forEach(tile=>{
+    const tz = tile.dataset.tz;
+    const timeStr = now.toLocaleTimeString('en-GB', {timeZone:tz, hour:'2-digit', minute:'2-digit'});
+    const dateStr = now.toLocaleDateString('en-GB', {timeZone:tz, weekday:'short', day:'numeric', month:'short'});
+    const hour = parseInt(now.toLocaleString('en-GB', {timeZone:tz, hour:'2-digit', hour12:false}));
+    tile.querySelector('[data-time]').textContent = timeStr;
+    tile.querySelector('[data-date]').textContent = dateStr;
+    tile.querySelector('[data-offset]').textContent = getOffsetLabel(tz, now);
+    tile.querySelector('[data-icon]').textContent = (hour >= 6 && hour < 19) ? '☀️' : '🌙';
+  });
+}
+renderClocks();
+setInterval(renderClocks, 1000);
+
+// ---------- status engine ----------
+function startOfDay(dt){ const x=new Date(dt); x.setHours(0,0,0,0); return x; }
+
+function render(){
+  const now = new Date();
+  document.getElementById('todayLabel').textContent = now.toLocaleDateString('en-GB',{weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  document.getElementById('todayTime').textContent = now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+
+  const today = startOfDay(now);
+  const tripStart = startOfDay(new Date(days[0].d+"T00:00:00"));
+  const tripEnd = startOfDay(new Date(days[days.length-1].d+"T00:00:00"));
+
+  const statusValue = document.getElementById('statusValue');
+  const statusDetail = document.getElementById('statusDetail');
+  const statusPill = document.getElementById('statusPill');
+  const routeFill = document.getElementById('routeFill');
+  const stopEls = [...document.querySelectorAll('.stop')];
+
+  let activeStopIndex = 0;
+  let progressPct = 0;
+
+  if(today < tripStart){
+    const diffDays = Math.round((tripStart - today) / 86400000);
+    statusValue.textContent = `T-minus ${diffDays} day${diffDays===1?'':'s'}`;
+    statusValue.className = 'status-value upcoming';
+    statusDetail.textContent = `Trip departs Manchester on ${tripStart.toLocaleDateString('en-GB',{weekday:'long', day:'numeric', month:'long'})}.`;
+    statusPill.textContent = 'NOT YET DEPARTED';
+    activeStopIndex = 0;
+    progressPct = 0;
+  } else if(today > tripEnd){
+    statusValue.textContent = 'Trip complete';
+    statusValue.className = 'status-value';
+    statusDetail.textContent = 'Back home in Manchester.';
+    statusPill.textContent = 'LANDED';
+    activeStopIndex = stops.length-1;
+    progressPct = 100;
+  } else {
+    // find matching day entry
+    let match = days.find(d => d.d === now.toISOString().slice(0,10));
+    if(!match){
+      // fallback: nearest day not after today
+      match = [...days].reverse().find(d => new Date(d.d+"T00:00:00") <= today) || days[0];
+    }
+    const dayIdx = days.indexOf(match);
+    activeStopIndex = match.stopIndex;
+    progressPct = (dayIdx/(days.length-1))*100;
+
+    if(match.type === 'travel'){
+      statusValue.textContent = `In transit — ${match.route}`;
+      statusValue.className = 'status-value transit';
+    } else if(match.type === 'recovery'){
+      statusValue.textContent = 'Home — recovery day';
+      statusValue.className = 'status-value';
+    } else {
+      statusValue.textContent = `In ${match.route}`;
+      statusValue.className = 'status-value';
+    }
+    statusDetail.textContent = match.hotel ? `Staying at ${match.hotel}` : (match.flight || '');
+    statusPill.textContent = `DAY ${dayIdx+1}/${days.length}`;
+  }
+
+  routeFill.style.width = `calc(${progressPct}% )`;
+  stopEls.forEach((el,i)=>{
+    el.classList.remove('done','current');
+    if(i < activeStopIndex) el.classList.add('done');
+    if(i === activeStopIndex) el.classList.add('current');
+  });
+
+  // highlight matching world-clock tile for the current city
+  const stopTzMap = {"MAN":"Europe/London","SIN":"Asia/Singapore","ADL":"Australia/Adelaide","SYD":"Australia/Sydney","CNS":"Australia/Brisbane"};
+  const activeTz = stopTzMap[stops[activeStopIndex].code];
+  document.querySelectorAll('.clock-tile').forEach(tile=>{
+    tile.classList.toggle('here', tile.dataset.tz === activeTz);
+  });
+
+  // mark today / past day rows
+  document.querySelectorAll('.day-row').forEach(row=>{
+    const rd = startOfDay(new Date(row.dataset.date+"T00:00:00"));
+    row.classList.remove('today','past');
+    if(rd.getTime() === today.getTime()){ row.classList.add('today'); row.open = true; }
+    else if(rd < today){ row.classList.add('past'); }
+  });
+}
+
+render();
+setInterval(render, 60000);
+</script>
+</body>
+</html>

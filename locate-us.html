@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Locate Us — Family Road Trip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root{
+    --cream:#fbf1de;
+    --cream-2:#f6e6c8;
+    --mustard:#e8ac3b;
+    --teal:#2f7a72;
+    --teal-dark:#1f5450;
+    --coral:#e4572e;
+    --brown:#4a352a;
+    --ink:#3a2a1f;
+    --white:#fffaf0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Quicksand',sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(circle at 10% 5%, rgba(232,172,59,0.25), transparent 40%),
+      radial-gradient(circle at 95% 15%, rgba(228,87,46,0.15), transparent 45%),
+      var(--cream);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:26px 18px 70px;}
+
+  /* ---------- HEADER ---------- */
+  .header{
+    text-align:center;
+    padding:14px 10px 26px;
+    position:relative;
+  }
+  .header .eyebrow{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    color:var(--coral);
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    font-size:13px;
+  }
+  .header h1{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:800;
+    font-size:clamp(34px,7vw,58px);
+    color:var(--teal-dark);
+    margin:6px 0 4px;
+    line-height:1.02;
+    text-shadow:3px 3px 0 var(--mustard);
+  }
+  .header p{
+    font-size:15px;color:var(--brown);opacity:0.85;margin:0;
+  }
+
+  /* ---------- STATUS BANNER ---------- */
+  .status-banner{
+    background:var(--teal);
+    border-radius:22px;
+    padding:20px 24px;
+    color:var(--white);
+    display:flex;
+    align-items:center;
+    gap:18px;
+    box-shadow:0 14px 0 -6px var(--teal-dark), 0 20px 30px -10px rgba(0,0,0,0.25);
+    margin-bottom:36px;
+    position:relative;
+    overflow:hidden;
+  }
+  .status-banner::after{
+    content:"🧭";
+    position:absolute;right:18px;top:50%;transform:translateY(-50%) rotate(12deg);
+    font-size:56px;opacity:0.18;
+  }
+  .status-emoji{font-size:40px;line-height:1;flex-shrink:0;}
+  .status-text .label{
+    font-family:'Baloo 2',sans-serif;font-weight:700;font-size:12px;
+    text-transform:uppercase;letter-spacing:0.1em;opacity:0.85;
+  }
+  .status-text .value{
+    font-family:'Baloo 2',sans-serif;font-weight:800;font-size:clamp(20px,4vw,28px);
+    margin-top:2px;
+  }
+  .status-text .sub{font-size:13.5px;margin-top:4px;opacity:0.92;}
+
+  /* ---------- ROAD ---------- */
+  /* ---------- FUN ROW ---------- */
+  .fun-row{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    flex-wrap:wrap;
+    margin-bottom:26px;
+  }
+  .fun-stat{
+    background:var(--white);
+    border:3px solid var(--brown);
+    border-radius:16px;
+    padding:10px 18px;
+    text-align:center;
+    box-shadow:4px 4px 0 rgba(74,53,42,0.15);
+    min-width:110px;
+  }
+  .fun-stat-num{
+    font-family:'Baloo 2',sans-serif;font-weight:800;font-size:26px;color:var(--coral);
+  }
+  .fun-stat-label{
+    font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--brown);opacity:0.8;
+  }
+
+  .confetti-piece{
+    position:fixed;
+    top:-20px;
+    width:10px;height:10px;
+    z-index:998;
+    pointer-events:none;
+    animation:confetti-fall linear forwards;
+  }
+  @keyframes confetti-fall{
+    to{ transform:translateY(110vh) rotate(540deg); opacity:0.9;}
+  }
+
+  /* plane interactivity */
+  .plane-icon-wrap{cursor:pointer;}
+  .plane-icon-wrap.honk{animation:plane-bounce 0.5s ease;}
+  @keyframes plane-bounce{
+    0%{transform:scale(1) rotate(var(--rot,0deg));}
+    30%{transform:scale(1.3) rotate(calc(var(--rot,0deg) - 8deg));}
+    60%{transform:scale(0.9) rotate(calc(var(--rot,0deg) + 6deg));}
+    100%{transform:scale(1) rotate(var(--rot,0deg));}
+  }
+  .plane-icon-wrap{
+    width:100%;height:100%;
+    transform:rotate(var(--rot,0deg));
+    filter:drop-shadow(2px 4px 3px rgba(0,0,0,0.35));
+  }
+  .plane-icon-wrap svg{width:100%;height:100%;}
+
+  .map-wrap{
+    position:relative;
+    margin-bottom:10px;
+    border-radius:22px;
+    overflow:hidden;
+    border:3px solid var(--brown);
+    box-shadow:5px 5px 0 rgba(74,53,42,0.15);
+  }
+  #leafletMap{
+    height:400px;
+    width:100%;
+    background:#bfe3dd;
+  }
+  .map-pin-icon{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:11px;
+    color:var(--teal-dark);
+    text-align:center;
+    pointer-events:none;
+  }
+  .map-pin-icon .dot{
+    width:13px;height:13px;border-radius:50%;
+    background:var(--mustard);
+    border:2.5px solid var(--brown);
+    margin:0 auto 3px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.3);
+  }
+  .map-pin-icon.visited .dot{background:var(--teal);}
+  .map-pin-icon.active .dot{background:var(--coral); box-shadow:0 0 0 5px rgba(228,87,46,0.28);}
+  .map-pin-icon .label{
+    background:rgba(255,250,240,0.92);
+    padding:1px 6px;border-radius:6px;
+    white-space:nowrap;
+    border:1.5px solid var(--brown);
+  }
+  .leaflet-popup-content{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:13px;
+    color:var(--ink);
+    margin:8px 10px;
+  }
+
+  /* ---------- STOP CARDS ---------- */
+  .stops{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+    margin-top:8px;
+  }
+  .stop-card{
+    background:var(--white);
+    border:3px solid var(--brown);
+    border-radius:18px;
+    padding:16px 18px;
+    display:grid;
+    grid-template-columns:64px 1fr auto;
+    gap:16px;
+    align-items:center;
+    position:relative;
+    box-shadow:5px 5px 0 rgba(74,53,42,0.15);
+    cursor:pointer;
+    transition:transform 0.12s ease;
+  }
+  .stop-card:hover{transform:translateY(-2px);}
+  .stop-card:active{transform:translateY(1px);}
+  .stop-pin{transition:transform 0.2s ease;}
+  .stop-card:hover .stop-pin{transform:rotate(-8deg) scale(1.08);}
+  .postcard-back{
+    display:none;
+    grid-column:1 / -1;
+    font-size:13.5px;
+    color:var(--teal-dark);
+    background:var(--cream-2);
+    border-radius:12px;
+    padding:10px 12px;
+    font-style:italic;
+    margin-top:2px;
+    animation:pop-in 0.25s ease;
+  }
+  .stop-card.flipped .postcard-back{display:block;}
+  @keyframes pop-in{
+    from{opacity:0; transform:scale(0.9);}
+    to{opacity:1; transform:scale(1);}
+  }
+  .stop-card.past{opacity:0.55;}
+  .stop-card.current{
+    border-color:var(--coral);
+    box-shadow:5px 5px 0 var(--mustard);
+  }
+  .stop-pin{
+    width:56px;height:56px;border-radius:50%;
+    background:var(--mustard);
+    display:flex;align-items:center;justify-content:center;
+    font-size:26px;
+    border:3px solid var(--brown);
+    flex-shrink:0;
+  }
+  .stop-card.current .stop-pin{background:var(--coral);}
+  .stop-main .place{
+    font-family:'Baloo 2',sans-serif;font-weight:700;font-size:19px;color:var(--teal-dark);
+  }
+  .stop-main .dates{
+    font-size:13.5px;color:var(--brown);opacity:0.85;margin-top:2px;
+  }
+  .stop-tag{
+    font-family:'Baloo 2',sans-serif;font-size:11px;font-weight:700;
+    padding:6px 12px;border-radius:999px;white-space:nowrap;
+    text-transform:uppercase;letter-spacing:0.04em;
+  }
+  .stop-tag.stay{background:var(--teal);color:var(--white);}
+  .stop-tag.transit{background:var(--coral);color:var(--white);}
+  .stop-tag.home{background:var(--brown);color:var(--cream);}
+
+  footer{
+    text-align:center;color:var(--brown);opacity:0.6;font-size:12px;margin-top:34px;
+    font-family:'Quicksand',sans-serif;
+  }
+
+  @media (max-width:520px){
+    .stop-card{grid-template-columns:48px 1fr;}
+    .stop-tag{grid-column:1 / -1;justify-self:start;margin-top:6px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="eyebrow">🚐 Family road trip tracker</div>
+    <h1>Locate Us</h1>
+    <p>Follow our big Australia adventure</p>
+  </div>
+
+  <div class="fun-row">
+    <div class="fun-stat" id="statDays">
+      <div class="fun-stat-num">0</div>
+      <div class="fun-stat-label">Sleeps in</div>
+    </div>
+    <div class="fun-stat" id="statPlaces">
+      <div class="fun-stat-num">0</div>
+      <div class="fun-stat-label">Places visited</div>
+    </div>
+  </div>
+
+  <div class="status-banner">
+    <div class="status-emoji" id="statusEmoji">🧳</div>
+    <div class="status-text">
+      <div class="label">Right now</div>
+      <div class="value" id="statusValue">Loading…</div>
+      <div class="sub" id="statusSub"></div>
+    </div>
+  </div>
+
+  <div class="map-wrap">
+    <div id="leafletMap"></div>
+  </div>
+
+  <div class="stops" id="stopsList"></div>
+
+  <footer>Map data © OpenStreetMap contributors · Bon voyage — check back any time to see where they've got to 🌏</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+// Stops: dates + locations only (no day-by-day itinerary)
+const stops = [
+  {place:"Manchester (departs)", emoji:"🏠", start:"2026-08-28", end:"2026-08-28", type:"transit",
+   note:"Bags packed, taxi booked — see you on the other side! 🧳"},
+  {place:"Singapore", emoji:"🦁", start:"2026-08-29", end:"2026-08-30", type:"stay",
+   note:"Sweaty, humid, and full of laksa. Loving it already 🍜"},
+  {place:"Adelaide", emoji:"🐨", start:"2026-08-31", end:"2026-09-02", type:"stay",
+   note:"Wine, beaches, and zero rush. Very civilised 🍷"},
+  {place:"Sydney", emoji:"🌉", start:"2026-09-03", end:"2026-09-06", type:"stay",
+   note:"Opera House selfie: check. Bridge selfie: check. 📸"},
+  {place:"Cairns", emoji:"🐠", start:"2026-09-07", end:"2026-09-10", type:"stay",
+   note:"Reef, sun, and sand in places sand shouldn't be 🐠"},
+  {place:"Singapore (transit)", emoji:"✈️", start:"2026-09-11", end:"2026-09-11", type:"transit",
+   note:"Airport chips and a very long queue. Send help ✈️"},
+  {place:"Manchester (home!)", emoji:"🏡", start:"2026-09-12", end:"2026-09-14", type:"home",
+   note:"Home, jet-lagged, and already missing the sun ☔"},
+];
+
+function fmtRange(startStr, endStr){
+  const s = new Date(startStr+"T12:00:00");
+  const e = new Date(endStr+"T12:00:00");
+  const opts = {day:'numeric', month:'short'};
+  if(startStr === endStr) return s.toLocaleDateString('en-GB', opts);
+  return `${s.toLocaleDateString('en-GB', opts)} – ${e.toLocaleDateString('en-GB', opts)}`;
+}
+
+// render stop cards
+const list = document.getElementById('stopsList');
+stops.forEach(st=>{
+  const card = document.createElement('div');
+  card.className = 'stop-card';
+  card.dataset.start = st.start;
+  card.dataset.end = st.end;
+  const tagClass = st.type;
+  const tagText = st.type === 'home' ? 'Home' : (st.type === 'transit' ? 'Travelling' : 'Staying');
+  card.innerHTML = `
+    <div class="stop-pin">${st.emoji}</div>
+    <div class="stop-main">
+      <div class="place">${st.place}</div>
+      <div class="dates">${fmtRange(st.start, st.end)}</div>
+    </div>
+    <div class="stop-tag ${tagClass}">${tagText}</div>
+    <div class="postcard-back">"${st.note}" — postcard from ${st.place.replace(/\s*\(.*\)/,'')}</div>
+  `;
+  card.addEventListener('click', ()=> card.classList.toggle('flipped'));
+  list.appendChild(card);
+});
+
+// real-world coordinates for each unique location
+const locations = {
+  0: {name:"Manchester", lat:53.4808, lon:-2.2426},
+  1: {name:"Singapore",  lat:1.3521,  lon:103.8198},
+  2: {name:"Adelaide",   lat:-34.9285, lon:138.6007},
+  3: {name:"Sydney",     lat:-33.8688, lon:151.2093},
+  4: {name:"Cairns",     lat:-16.9186, lon:145.7781},
+};
+// each stop maps to one of the locations above, in trip order
+const pinIdForStop = [0,1,2,3,4,1,0];
+const routeLatLngs = pinIdForStop.map(id => [locations[id].lat, locations[id].lon]);
+
+// ---------- real map (Leaflet + OpenStreetMap) ----------
+const map = L.map('leafletMap', {
+  scrollWheelZoom:false,
+  worldCopyJump:true,
+});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom:18,
+  attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+const bounds = L.latLngBounds(Object.values(locations).map(l=>[l.lat,l.lon]));
+map.fitBounds(bounds, {padding:[30,30]});
+
+// dashed route line connecting every stop in order
+L.polyline(routeLatLngs, {color:'#4a352a', weight:2.5, dashArray:'2 9', opacity:0.85}).addTo(map);
+
+// location pin markers
+const pinMarkers = {};
+Object.entries(locations).forEach(([id, loc])=>{
+  const icon = L.divIcon({
+    className:'',
+    html:`<div class="map-pin-icon" id="pin-${id}"><div class="dot"></div><div class="label">${loc.name}</div></div>`,
+    iconSize:[10,10],
+    iconAnchor:[5,5],
+  });
+  pinMarkers[id] = L.marker([loc.lat, loc.lon], {icon, zIndexOffset:100}).addTo(map);
+});
+
+// the plane marker itself
+function planeSvgHtml(){
+  return `<div class="plane-icon-wrap" id="planeIconWrap">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <g transform="rotate(45 32 32)">
+        <path d="M32 4 L38 24 L56 32 L38 34 L34 56 L30 34 L12 32 L30 24 Z" fill="#e4572e" stroke="#4a352a" stroke-width="2" stroke-linejoin="round"/>
+        <circle cx="32" cy="26" r="4" fill="#fffaf0" stroke="#4a352a" stroke-width="1.5"/>
+      </g>
+    </svg>
+  </div>`;
+}
+const planeIcon = L.divIcon({className:'', html:planeSvgHtml(), iconSize:[40,40], iconAnchor:[20,20]});
+const planeMarker = L.marker(routeLatLngs[0], {icon:planeIcon, zIndexOffset:200}).addTo(map);
+planeMarker.bindPopup('Zoom! ✈️');
+
+function bearingBetween(lat1,lon1,lat2,lon2){
+  const toRad = d=>d*Math.PI/180, toDeg = r=>r*180/Math.PI;
+  const y = Math.sin(toRad(lon2-lon1))*Math.cos(toRad(lat2));
+  const x = Math.cos(toRad(lat1))*Math.sin(toRad(lat2)) - Math.sin(toRad(lat1))*Math.cos(toRad(lat2))*Math.cos(toRad(lon2-lon1));
+  return (toDeg(Math.atan2(y,x))+360)%360;
+}
+
+function startOfDay(dt){ const x=new Date(dt); x.setHours(0,0,0,0); return x; }
+
+function render(){
+  const now = new Date();
+  const today = startOfDay(now);
+  const tripStart = startOfDay(new Date(stops[0].start+"T00:00:00"));
+  const tripEnd = startOfDay(new Date(stops[stops.length-1].end+"T00:00:00"));
+
+  const statusEmoji = document.getElementById('statusEmoji');
+  const statusValue = document.getElementById('statusValue');
+  const statusSub = document.getElementById('statusSub');
+
+  let activeIdx = 0;
+  let progress = 0; // 0..1 along the road
+
+  if(today < tripStart){
+    const diff = Math.round((tripStart-today)/86400000);
+    statusEmoji.textContent = '🧳';
+    statusValue.textContent = `Packing! Trip starts in ${diff} day${diff===1?'':'s'}`;
+    statusSub.textContent = `Setting off from Manchester on ${tripStart.toLocaleDateString('en-GB',{weekday:'long', day:'numeric', month:'long'})}.`;
+    activeIdx = 0; progress = 0;
+  } else if(today > tripEnd){
+    statusEmoji.textContent = '🏡';
+    statusValue.textContent = 'Back home in Manchester!';
+    statusSub.textContent = 'The adventure is over — welcome home!';
+    activeIdx = stops.length-1; progress = 1;
+  } else {
+    let idx = stops.findIndex(s => today >= startOfDay(new Date(s.start+"T00:00:00")) && today <= startOfDay(new Date(s.end+"T00:00:00")));
+    if(idx === -1) idx = 0;
+    activeIdx = idx;
+    progress = idx / (stops.length-1);
+    const st = stops[idx];
+    if(st.type === 'transit'){
+      statusEmoji.textContent = '✈️';
+      statusValue.textContent = `On the move — ${st.place}`;
+    } else if(st.type === 'home'){
+      statusEmoji.textContent = '🏡';
+      statusValue.textContent = 'Home, resting up';
+    } else {
+      statusEmoji.textContent = st.emoji;
+      statusValue.textContent = `Currently in ${st.place}`;
+    }
+    statusSub.textContent = `${fmtRange(st.start, st.end)}`;
+  }
+
+  // snap the plane to the current stop's real location, angled from where it came from
+  const currentLoc = locations[pinIdForStop[activeIdx]];
+  const prevLoc = locations[pinIdForStop[Math.max(activeIdx-1,0)]];
+  const angle = bearingBetween(prevLoc.lat, prevLoc.lon, currentLoc.lat, currentLoc.lon);
+  planeMarker.setLatLng([currentLoc.lat, currentLoc.lon]);
+  const planeEl = planeMarker.getElement();
+  if(planeEl){
+    const wrap = planeEl.querySelector('.plane-icon-wrap');
+    if(wrap) wrap.style.setProperty('--rot', angle + 'deg');
+  }
+
+  // highlight map pins for visited / current stop (legs 5 & 6 revisit Singapore/Manchester pins)
+  document.querySelectorAll('.map-pin-icon').forEach(p=> p.classList.remove('visited','active'));
+  const visitedIds = new Set(), activeId = pinIdForStop[activeIdx];
+  stops.forEach((st,i)=>{ if(i < activeIdx) visitedIds.add(pinIdForStop[i]); });
+  Object.keys(locations).forEach(id=>{
+    const pin = document.getElementById('pin-'+id);
+    if(!pin) return;
+    if(visitedIds.has(Number(id))) pin.classList.add('visited');
+    if(Number(id) === activeId) pin.classList.add('active');
+  });
+
+  // mark card states
+  document.querySelectorAll('.stop-card').forEach((card,i)=>{
+    card.classList.remove('past','current');
+    if(i < activeIdx) card.classList.add('past');
+    if(i === activeIdx) card.classList.add('current');
+  });
+
+  // fun stat counters
+  const statDaysNum = document.querySelector('#statDays .fun-stat-num');
+  const statDaysLabel = document.querySelector('#statDays .fun-stat-label');
+  const statPlacesNum = document.querySelector('#statPlaces .fun-stat-num');
+  if(today < tripStart){
+    statDaysNum.textContent = Math.round((tripStart-today)/86400000);
+    statDaysLabel.textContent = 'Sleeps till they fly';
+  } else if(today > tripEnd){
+    statDaysNum.textContent = '0';
+    statDaysLabel.textContent = 'Sleeps till home';
+  } else {
+    statDaysNum.textContent = Math.max(0, Math.round((tripEnd-today)/86400000));
+    statDaysLabel.textContent = 'Sleeps till home';
+  }
+  const placesDone = stops.filter((s,i)=> i <= activeIdx && s.type !== 'transit').length;
+  statPlacesNum.textContent = placesDone;
+}
+
+render();
+window.addEventListener('resize', render);
+setInterval(render, 60000);
+
+// ---------- fun interactions ----------
+
+// plane toot on click
+const honkMessages = ["Zoom! ✈️","G'day! 🇦🇺","Are we there yet?","Wish you were here! 💌","Onwards! 🧭"];
+planeMarker.on('click', ()=>{
+  const el = planeMarker.getElement();
+  const wrap = el ? el.querySelector('.plane-icon-wrap') : null;
+  if(wrap){
+    wrap.classList.remove('honk'); void wrap.offsetWidth; wrap.classList.add('honk');
+  }
+  planeMarker.setPopupContent(honkMessages[Math.floor(Math.random()*honkMessages.length)]);
+  planeMarker.openPopup();
+  clearTimeout(planeMarker._t);
+  planeMarker._t = setTimeout(()=> planeMarker.closePopup(), 1600);
+});
+
+// confetti burst on load, celebrating wherever they are
+function confettiBurst(count){
+  const colors = ['#e8ac3b','#2f7a72','#e4572e','#fffaf0'];
+  for(let i=0;i<count;i++){
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random()*100 + 'vw';
+    piece.style.background = colors[Math.floor(Math.random()*colors.length)];
+    piece.style.animationDuration = (2 + Math.random()*1.5) + 's';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    document.body.appendChild(piece);
+    setTimeout(()=> piece.remove(), 3800);
+  }
+}
+setTimeout(()=> confettiBurst(28), 400);
+
+</script>
+</body>
+</html>
