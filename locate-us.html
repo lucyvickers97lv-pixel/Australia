@@ -15,6 +15,7 @@
     --teal:#2f7a72;
     --teal-dark:#1f5450;
     --coral:#e4572e;
+    --grey:#a9a29a;
     --brown:#4a352a;
     --ink:#3a2a1f;
     --white:#fffaf0;
@@ -171,8 +172,11 @@
     margin:0 auto 3px;
     box-shadow:0 1px 3px rgba(0,0,0,0.3);
   }
-  .map-pin-icon.visited .dot{background:var(--teal);}
+  .map-pin-icon.visited{opacity:0.6;}
+  .map-pin-icon.visited .dot{background:var(--grey); border-color:#7a7268;}
+  .map-pin-icon.visited .label{color:#7a7268; border-color:#7a7268;}
   .map-pin-icon.active .dot{background:var(--coral); box-shadow:0 0 0 5px rgba(228,87,46,0.28);}
+  .map-pin-icon.active{opacity:1;}
   .map-pin-icon .label{
     background:rgba(255,250,240,0.92);
     padding:1px 6px;border-radius:6px;
@@ -186,6 +190,69 @@
     color:var(--ink);
     margin:8px 10px;
   }
+
+  /* ---------- PHOTO GALLERY ---------- */
+  .gallery-card{
+    background:var(--white);
+    border:3px solid var(--brown);
+    border-radius:18px;
+    padding:18px 18px 22px;
+    margin-top:18px;
+    box-shadow:5px 5px 0 rgba(74,53,42,0.15);
+  }
+  .gallery-card .section-eyebrow{
+    font-family:'Baloo 2',sans-serif;font-weight:700;font-size:13px;
+    color:var(--coral); text-transform:uppercase; letter-spacing:0.06em;
+    margin-bottom:14px;
+  }
+  .gallery-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+    gap:14px;
+  }
+  .gallery-tile{
+    position:relative;
+    border:3px solid var(--brown);
+    border-radius:12px;
+    overflow:hidden;
+    aspect-ratio:1/1;
+    cursor:pointer;
+    background:var(--cream-2);
+    transform:rotate(var(--tilt,0deg));
+    transition:transform 0.15s ease;
+    box-shadow:3px 3px 0 rgba(74,53,42,0.18);
+  }
+  .gallery-tile:hover{transform:rotate(0deg) scale(1.04); z-index:2;}
+  .gallery-tile img{
+    width:100%;height:100%;object-fit:cover;display:block;
+  }
+  .gallery-tile .caption{
+    position:absolute;left:0;right:0;bottom:0;
+    background:rgba(74,53,42,0.75);
+    color:var(--white);
+    font-size:10.5px;
+    padding:4px 6px;
+    text-align:center;
+  }
+  .gallery-tile.placeholder{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:var(--brown); opacity:0.55; font-size:11px; text-align:center; gap:6px; padding:8px;
+  }
+  .gallery-tile.placeholder .icon{font-size:26px;}
+
+  .lightbox{
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(20,15,10,0.85);
+    z-index:1000;
+    align-items:center; justify-content:center;
+    padding:24px;
+    cursor:zoom-out;
+  }
+  .lightbox.show{display:flex;}
+  .lightbox-inner{max-width:min(90vw,640px);}
+  .lightbox-inner img{width:100%;border-radius:12px; border:4px solid var(--white);}
+  .lightbox-caption{color:var(--white); text-align:center; margin-top:10px; font-family:'Baloo 2',sans-serif;}
 
   /* ---------- STOP CARDS ---------- */
   .stops{
@@ -229,7 +296,7 @@
     from{opacity:0; transform:scale(0.9);}
     to{opacity:1; transform:scale(1);}
   }
-  .stop-card.past{opacity:0.55;}
+  .stop-card.past{opacity:0.6; filter:grayscale(0.85);}
   .stop-card.current{
     border-color:var(--coral);
     box-shadow:5px 5px 0 var(--mustard);
@@ -304,7 +371,19 @@
 
   <div class="stops" id="stopsList"></div>
 
+  <div class="gallery-card">
+    <div class="section-eyebrow">📸 Holiday snaps</div>
+    <div class="gallery-grid" id="galleryGrid"></div>
+  </div>
+
   <footer>Map data © OpenStreetMap contributors · Bon voyage — check back any time to see where they've got to 🌏</footer>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-inner">
+    <img id="lightboxImg" src="" alt="">
+    <div class="lightbox-caption" id="lightboxCaption"></div>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -546,6 +625,50 @@ function confettiBurst(count){
   }
 }
 setTimeout(()=> confettiBurst(28), 400);
+
+// ---------- photo gallery ----------
+// Add your holiday photos here once uploaded to the "photos" folder in the repo.
+// Each entry: {src:"photos/yourfile.jpg", caption:"Short caption"}
+const photos = [
+  // {src:"photos/singapore-gardens.jpg", caption:"Gardens by the Bay 🌳"},
+  // {src:"photos/sydney-opera-house.jpg", caption:"Opera House selfie 📸"},
+];
+
+const galleryGrid = document.getElementById('galleryGrid');
+const minTiles = 6; // always show at least this many tiles (photos + placeholders)
+const tiltAngles = [-3,2,-2,3,-1.5,2.5,-2.5,1.5];
+
+function renderGallery(){
+  galleryGrid.innerHTML = '';
+  const total = Math.max(photos.length, minTiles);
+  for(let i=0;i<total;i++){
+    const tile = document.createElement('div');
+    const tilt = tiltAngles[i % tiltAngles.length];
+    tile.style.setProperty('--tilt', tilt+'deg');
+    const photo = photos[i];
+    if(photo){
+      tile.className = 'gallery-tile';
+      tile.innerHTML = `<img src="${photo.src}" alt="${photo.caption||''}" onerror="this.parentElement.classList.add('placeholder'); this.parentElement.innerHTML='<div class=&quot;icon&quot;>🖼️</div><div>Missing: ${photo.src}</div>';">
+        ${photo.caption ? `<div class="caption">${photo.caption}</div>` : ''}`;
+      tile.addEventListener('click', ()=> openLightbox(photo.src, photo.caption||''));
+    } else {
+      tile.className = 'gallery-tile placeholder';
+      tile.innerHTML = `<div class="icon">📷</div><div>Add a photo</div>`;
+    }
+    galleryGrid.appendChild(tile);
+  }
+}
+renderGallery();
+
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightboxImg');
+const lightboxCaption = document.getElementById('lightboxCaption');
+function openLightbox(src, caption){
+  lightboxImg.src = src;
+  lightboxCaption.textContent = caption;
+  lightbox.classList.add('show');
+}
+lightbox.addEventListener('click', ()=> lightbox.classList.remove('show'));
 
 </script>
 </body>
